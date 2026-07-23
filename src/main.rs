@@ -1,3 +1,5 @@
+use std::env;
+
 use topcoat::{
     Result,
     router::{Router, RouterBuilderDiscoverExt, page},
@@ -6,6 +8,10 @@ use topcoat::{
 
 #[tokio::main]
 async fn main() {
+    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
+    let port = env::var("PORT").unwrap_or_else(|_| "3000".into());
+    println!("Starting server on {host}:{port}");
+
     topcoat::start(Router::builder().discover().build())
         .await
         .unwrap();

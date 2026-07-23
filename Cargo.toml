@@ -2,7 +2,12 @@
 name = "topcoat-hello-world"
 version = "0.1.0"
 edition = "2021"
+default-run = "topcoat-hello-world"
 publish = false
+
+[[bin]]
+name = "topcoat-hello-world"
+path = "src/main.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
