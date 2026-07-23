@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=https://api.app-prg1.zerops.io/api/rest/public/settings/zerops-yaml-json-schema.json
+
+zerops:
+  # Production setup — compile optimized release binary and run on port 8080.
+  # Topcoat defaults to 127.0.0.1:3000; HOST/PORT override that for Zerops routing.
+  - setup: prod
+    build:
+      base: rust@stable
+      os: ubuntu
+
+      # Keep cargo registry under the project tree so Zerops can cache it.
+      envVariables:
+        CARGO_HOME: ./.cargo
+
+      buildCommands:
+        # --locked validates Cargo.lock — prevents surprise dependency updates in prod.
+        - cargo build --release --locked
+
+      deployFiles:
+        # Deploy release binary only (smaller artifact than deployFiles: [.])
+        - ./target/release/topcoat-hello-world
+
+      cache:
+        - .cargo/registry
+        - target
+
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 8080
+          path: /
+
+    run:
+      base: rust@stable
+      os: ubuntu
+
+      ports:
+        - port: 8080
+          httpSupport: true
+
+      envVariables:
+        HOST: "0.0.0.0"
+        PORT: "8080"
+
+      start: ./target/release/topcoat-hello-world
+
+  # Development setup — deploy full source for SSH / topcoat dev workflow.
+  # Developer runs 'topcoat dev' manually; Zerops does not start the app.
+  - setup: dev
+    build:
+      base: rust@stable
+      os: ubuntu
+
+      envVariables:
+        CARGO_HOME: ./.cargo
+
+      prepareCommands:
+        # Topcoat CLI provides 'topcoat dev' — watch mode with asset bundling.
+        # See https://github.com/kriszerops/topcoat — getting started guide.
+        - cargo install topcoat-cli --locked
+
+      buildCommands:
+        # Fetch dependencies only — developer compiles on demand via SSH.
+        - cargo fetch
+
+      deployFiles:
+        - ./
+
+      cache:
+        - .cargo/registry
+
+    run:
+      base: rust@stable
+      os: ubuntu
+
+      ports:
+        - port: 8080
+          httpSupport: true
+
+      envVariables:
+        CARGO_HOME: /var/www/.cargo
+        HOST: "0.0.0.0"
+        PORT: "8080"
+
+      # No app started — connect via SSH and run 'topcoat dev' or 'cargo run'
+      start: zsc noop --silent
